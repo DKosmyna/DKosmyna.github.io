@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Login | Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <link rel="stylesheet" href="assets/css/bootstrap-grid.css" />
+  <link rel="stylesheet" href="assets/css/font-awesome.min.css" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <link rel="shortcut icon" href="assets/img/favicon.png">
+</head>
+
+<body id="home">
+  <div class="container">
+    <section class="s-contacts" style="background-image: url(assets/img/bg-contacts.svg); padding: 100px 0;">
+      <div class="container">
+        <div style="text-align: center; margin-top: 20px; margin-bottom: 20px;">
+            <a href="index.html" class="btn">← На головну</a>
+          </div>
+        <h2 class="title-decor" style="text-align: center;">Вхід для <span>адміністратора</span></h2>
+        <p class="slogan" style="text-align: center;">Введіть логін і пароль для авторизації</p>
+
+        <div class="row justify-content-center">
+          <div class="col-md-6">
+            <form id="login-form">
+              <ul class="form-cover">
+                <li class="inp-name">
+                  <label>Email</label>
+                  <input type="email" id="email" required />
+                </li>
+                <li class="inp-name">
+                  <label>Пароль</label>
+                  <input type="password" id="password" required />
+                </li>
+              </ul>
+              <div class="btn-form-cover" style="text-align: center;">
+                <button type="submit" class="btn">Увійти</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+
+    const supabase = createClient('https://vrmiietkfzhpfgrdzfch.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZybWlpZXRrZnpocGZncmR6ZmNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQxOTY3MDEsImV4cCI6MjA1OTc3MjcwMX0.JSmpMmb4EBmKOEfr_Xl-fg7EyFmliC3aF-MhreNsW8E')
+
+    const form = document.getElementById('login-form')
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault()
+      const email = document.getElementById('email').value
+      const password = document.getElementById('password').value
+
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+
+      if (error) {
+        alert('Помилка входу: ' + error.message)
+      } else {
+        localStorage.setItem('sb_token', data.session.access_token)
+        window.location.href = 'admin.html'
+      }
+    })
+  </script>
+</body>
+
+</html>

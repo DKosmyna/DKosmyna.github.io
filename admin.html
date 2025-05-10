@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Адмін | Fitmax</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <link rel="shortcut icon" href="assets/img/favicon.png">
+  <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/bootstrap-grid.css" />
+  <link rel="stylesheet" href="assets/css/font-awesome.min.css" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    body {
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+
+<body id="home">
+
+  <section class="s-contacts" style="background-image: url(assets/img/bg-contacts.svg); padding: 100px 0;">
+    <div class="container" style="display: flex; justify-content: center; ">
+      <a href="index.html" class="btn">← На головну</a>
+      <button type="button" class="btn" id="logout-btn" style="margin-left: 20px;">Вийти</button>
+    </div>
+    <div class="container" style="display: flex; justify-content: center; margin-top: 20px;">
+      <button id="export-csv" class="btn" >
+        Експортувати підписки в CSV
+      </button>
+    </div>
+  </section>
+  
+  <section class="s-contacts" style="background-image: url(assets/img/bg-contacts.svg); padding: 100px 0;">
+    <div class="container">
+      <h2 class="title-decor" style="text-align: center;">Отримані <span>повідомлення</span></h2>
+      <select id="filter-select" class="btn filter-select" style="margin: 20px auto; display: block;">
+        <option value="unprocessed">Не опрацьовані</option>
+        <option value="all">Усі повідомлення</option>
+      </select>
+      <div class="messages-wrapper">
+        <div id="messages-container" class="row justify-content-center"></div>
+        <div class="text-center">
+          <button id="toggle-messages" class="btn toggle-messages">Показати всі</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="s-contacts" style="background-image: url(assets/img/bg-contacts.svg); padding: 100px 0;">
+    <div class="container">
+      <h2 class="title-decor" style="text-align: center;">Додати <span>статтю</span></h2>
+      <p class="slogan" style="text-align: center;">Заповніть форму нижче для публікації статті в блозі</p>
+
+      <div class="row justify-content-center">
+        <div class="col-md-8">
+          <form id="post-form">
+            <ul class="form-cover">
+              <li class="inp-name">
+                <label>Заголовок</label>
+                <input type="text" id="title" required />
+              </li>
+              <li class="inp-name">
+                <label>Slug (наприклад: welcome-to-fitmax)</label>
+                <input type="text" id="slug" required />
+              </li>
+              <li class="inp-name">
+                <label class="btn" style="cursor: pointer;">
+                    Завантажити зображення
+                    <input type="file" id="cover_image_file" accept="image/*" style="display: none;" />
+                  </label>
+                  <span id="file-name" style="margin-left: 10px; font-size: 14px; color: #ccc;"></span>
+                  <input type="hidden" id="cover_image" />
+              </li>
+              <li class="inp-name">
+                <label>Категорія</label>
+                <input type="text" id="category" />
+              </li>
+              <li class="inp-text">
+                <label>Контент</label>
+                <div id="editor" style="height: 200px;"></div>
+              </li>
+              <li class="inp-name">
+                <label>Автор</label>
+                <input type="text" id="author" required />
+              </li>
+            </ul>
+            <div class="btn-form-cover" style="text-align: center;">
+              <button type="submit" class="btn">Опублікувати</button>
+              <button type="button" class="btn" id="logout-btn" style="margin-left: 20px;">Вийти</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+
+    const supabase = createClient('https://vrmiietkfzhpfgrdzfch.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZybWlpZXRrZnpocGZncmR6ZmNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQxOTY3MDEsImV4cCI6MjA1OTc3MjcwMX0.JSmpMmb4EBmKOEfr_Xl-fg7EyFmliC3aF-MhreNsW8E')
+
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      alert('Увійдіть у систему')
+      window.location.href = 'login.html'
+    }
+
+
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+      await supabase.auth.signOut()
+      localStorage.removeItem('sb_token')
+      window.location.href = 'login.html'
+    })
+
+    const quill = new Quill('#editor', {
+      theme: 'snow'
+    })
+
+
+    document.getElementById('cover_image_file').addEventListener('change', (e) => {
+  const fileName = e.target.files.length > 0 ? e.target.files[0].name : ''
+  document.getElementById('file-name').textContent = fileName
+})
+    document.getElementById('post-form').addEventListener('submit', async (e) => {
+      e.preventDefault()
+
+      const title = document.getElementById('title').value
+      const slug = document.getElementById('slug').value
+      const cover_image = document.getElementById('cover_image').value
+      const category = document.getElementById('category').value
+      const author = document.getElementById('author').value
+      const html = quill.root.innerHTML
+
+      const fileInput = document.getElementById('cover_image_file')
+
+        let imageUrl = ''
+
+        if (fileInput.files.length > 0) {
+        const file = fileInput.files[0]
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${Date.now()}.${fileExt}`
+        const filePath = `blog-covers/${fileName}`
+
+        const { error: uploadError } = await supabase.storage
+            .from('images') // 👈 твоя bucket назва
+            .upload(filePath, file)
+
+        if (uploadError) {
+            alert('Помилка при завантаженні зображення: ' + uploadError.message)
+            return
+        }
+
+        const { data } = supabase.storage.from('images').getPublicUrl(filePath)
+        imageUrl = data.publicUrl
+        }
+
+      const { error } = await supabase.from('posts').insert([{
+        title,
+        slug,
+        cover_image: imageUrl,
+        category,
+        content: html,
+        author
+      }])
+
+      if (error) {
+        alert('Помилка: ' + error.message)
+      } else {
+        alert('Статтю додано!')
+        e.target.reset()
+        quill.setContents([]) // очищення редактора
+      }
+    })
+
+  
+    const messagesContainer = document.getElementById('messages-container')
+const filterSelect = document.getElementById('filter-select')
+filterSelect.addEventListener('change', () => loadMessages(filterSelect.value))
+
+async function loadMessages(filter = 'unprocessed') {
+  let query = supabase
+    .from('messages')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (filter === 'unprocessed') {
+    query = query.eq('processed', false)
+  }
+
+  const { data, error } = await query
+
+  if (error) {
+    messagesContainer.innerHTML = `<p style="color: red;">Помилка завантаження повідомлень: ${error.message}</p>`
+    return
+  }
+
+  if (!data || data.length === 0) {
+    messagesContainer.innerHTML = `<p style="text-align: center;">Немає повідомлень</p>`
+    return
+  }
+
+  messagesContainer.innerHTML = ''
+
+  data.forEach(msg => {
+    const div = document.createElement('div')
+    div.className = 'col-md-10'
+    div.innerHTML = `
+      <div class="post-item-cover message-item" style="margin-bottom: 20px;">
+        <div class="post-content">
+          <div class="meta" style="display:block;">
+            <div><strong>Ім’я:</strong> ${msg.name} </div>
+            <strong>Email:</strong> ${msg.email} <br>
+            <strong>Телефон:</strong> ${msg.phone || '-'} <br>
+            <strong>Дата:</strong> ${new Date(msg.created_at).toLocaleString()}
+          </div>
+          <div class="text" style="margin-top: 10px;">${msg.message}</div>
+        </div>
+        <div style="margin-top: 10px;">
+          <label>
+            <input type="checkbox" ${msg.processed ? 'checked' : ''} data-id="${msg.id}" class="processed-checkbox">
+            Опрацьовано
+          </label>
+        </div>
+      </div>
+    `
+    messagesContainer.appendChild(div)
+  })
+
+  document.querySelectorAll('.processed-checkbox').forEach(cb => {
+  cb.addEventListener('change', async (e) => {
+    const id = e.target.dataset.id
+    const checked = e.target.checked
+
+    e.target.disabled = true
+
+    const { error } = await supabase
+      .from('messages')
+      .update({ processed: checked })
+      .eq('id', id)
+
+    if (error) {
+      alert('Не вдалося оновити статус')
+      e.target.checked = !checked // повертаємо попередній стан
+    } else {
+      if (filterSelect.value === 'unprocessed') {
+        e.target.closest('.col-md-10').remove()
+      } else {
+        e.target.checked = checked // явно встановлюємо правильне значення
+      }
+    }
+
+    e.target.disabled = false
+  })
+})
+
+}
+
+loadMessages(filterSelect.value)
+
+document.getElementById('toggle-messages').addEventListener('click', function () {
+  const container = document.getElementById('messages-container')
+  const expanded = container.classList.toggle('expanded')
+  this.textContent = expanded ? 'Згорнути' : 'Показати всі'
+})
+
+  </script>
+  <script type="module" src="assets/js/getSubscribe.js"></script>
+</body>
+
+</html>
